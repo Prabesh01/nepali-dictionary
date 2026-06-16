@@ -13,7 +13,10 @@ import { useLocation } from "react-router-dom";
 
 const App = function () {
   const location = useLocation();
-  const currentWord: string = decodeURIComponent(location.pathname.slice(1)).replaceAll("_", " ");
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const currentWord: string = pathParts[0] === 'word' && pathParts[1]
+    ? decodeURIComponent(pathParts[1]).replaceAll("_", " ")
+    : "";
   const { currentFont, nightMode }: sliceT = getSlice();
   const [loading, setLoading] = useState(false);
   const [apiData, setApiData] = useState<DictionaryData[] | DictDataError>();

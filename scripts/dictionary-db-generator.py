@@ -1,0 +1,180 @@
+import csv
+import json
+import os
+from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+import difflib
+import re
+from bs4 import BeautifulSoup
+
+from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
+
+abbr_index ={
+}
+
+# Worker initialization function to instantiate converters per-process safely
+def init_worker(shared_words_list):
+    global rev, rev2, smart_rev, smart_rev2, rev3, words_list
+    words_list = shared_words_list
+    rev = ReverseConverter()
+    rev2 = ReverseConverterV2()
+    smart_rev = ReverseConverter(smart=True)
+    smart_rev2 = ReverseConverterV2(smart=True)
+    rev3 = ReverseConverterV2(smart=True,custom_mappings={'ba': 'व'})
+
+def get_variants(nepali_word):
+    val_v1 = rev.convert(nepali_word).lower()
+    val_v2 = rev2.convert(nepali_word).lower()
+    val_v3 = smart_rev.convert(nepali_word).lower()
+    val_v4 = smart_rev2.convert(nepali_word).lower()
+    val_v5 = rev3.convert(nepali_word).lower()
+
+    all_keys = [val_v1, val_v2, val_v3, val_v4, val_v5]
+    unique_keys = set(str(k).strip().lower() for k in all_keys if k)
+
+    return list(unique_keys)
+
+def get_similar_words(target_word):
+    matches = difflib.get_close_matches(target_word, words_list, n=5, cutoff=0.3)
+    return [m for m in matches if m != target_word]
+
+def linkify_text(text):
+    def match_word(match):
+        word = match.group(0)
+
+        if word in words_list:
+            return f'<a href="/word/{word}" class="crosslink">{word}</a>'
+        return word
+
+    word_pattern = r'[^\s।,;?!()\[\]{}"\'-]+'
+    
+    return re.sub(word_pattern, match_word, text)
+
+def process_word(wmeaning):
+    word,meaning=wmeaning
+
+    meaning = re.sub(r'<span[^>]*>.*?</span>', '', meaning, count=1)
+    meaning_cleaned = re.sub(r'^(<br/>)+', '', meaning).strip()
+    
+    plain_meaning = BeautifulSoup(meaning_cleaned, 'html.parser').get_text()
+
+    meanings=[]
+    raw_pos = "??"
+    sub_blocks = re.split(r'<p▤>.*?</p>', meaning_cleaned)
+    for block in sub_blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        etym_match = re.search(r'<a◰>(.*?)</a>', block)
+        etymology = etym_match.group(1).strip() if etym_match else None
+        block = re.sub(r'<a◰>(.*?)</a>', '', block)
+
+        pos_match = re.search(r'<a◳>(.*?)</a>', block)
+        if pos_match:
+            raw_pos = pos_match.group(1).strip()
+            block = re.sub(r'<a◳>(.*?)</a>', '', block)
+
+        raw_definitions = re.findall(r'<p▦>(.*?)</p>', block)
+        clean_definitions = []
+
+        for d in raw_definitions:
+            examples = []
+            
+            example_match = re.search(r'<span▧>(.*?)</span>', d)
+            if example_match:
+                raw_example_text = example_match.group(1).strip()
+                
+                clean_example = re.sub(r'^\(उदा\.\s*', '', raw_example_text).rstrip(')')
+                
+                examples = [ex.strip() for ex in re.split(r'(?<=[।?!])\s+', clean_example) if ex.strip()]
+
+                d = re.sub(r'<br\s*/?>\s*<span▧>.*?</span>', '', d)
+                d = re.sub(r'<span▧>.*?</span>', '', d)
+
+            clean_def = re.sub(r'^\s*\d+\.\s+', '', d).strip()
+
+            linked_def = linkify_text(clean_def)
+            linked_examples = [linkify_text(ex) for ex in examples]
+
+            clean_definitions.append({
+                "definition": linked_def,
+                "examples": linked_examples
+            })
+
+        if clean_definitions:
+            entry = {
+                "partOfSpeech": raw_pos,
+                "definitions": clean_definitions
+            }
+            if etymology:
+                entry["etymology"] = etymology
+
+            meanings.append(entry)
+
+    similar_array = get_similar_words(word)
+    suggestions_string = ", ".join(similar_array)
+ 
+    variants = ", ".join(get_variants(word))
+    
+    variants_esc = variants.replace("'", "''")
+    plain_esc = plain_meaning.replace('\n', ' ').replace("'", "''")
+    sug_esc = suggestions_string.replace("'", "''")
+    word_esc = word.replace("'", "''")
+    html_esc = json.dumps(meanings, ensure_ascii=False).replace("'", "''")
+
+    ok= f"""
+    INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions) 
+    VALUES ('{word_esc}', '{variants_esc}', '{plain_esc}', '{html_esc}', '{sug_esc}');
+    """
+
+    with open("schema.sql", "a", encoding="utf-8") as f:
+        f.write(ok)
+
+
+words_list=set()
+if __name__ == '__main__':
+    words_meanings = []
+
+    # Read words into memory quickly
+    print("Reading CSV file...")
+    with open('sabdakosh.csv', 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        next(reader, None) # Skip header
+        for row in reader:
+            if row and row[1].strip() and row[-1].strip():
+                words_meanings.append([row[1].strip(),row[-1].strip()])
+                words_list.add(row[1].strip())
+
+    total_words = len(words_meanings)
+    insert_queries = []
+
+    # Process words in parallel using available CPU cores
+    num_workers = os.cpu_count()
+    print(f"Starting db generation engine using {num_workers} CPU cores...")
+
+    with open("schema.sql", "w", encoding="utf-8") as f:
+        f.write("""
+        DROP TABLE IF EXISTS dictionary;
+        CREATE TABLE dictionary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            word TEXT NOT NULL UNIQUE,
+            variants TEXT,
+            plain_meaning TEXT,
+            html_meaning TEXT,
+            suggestions TEXT
+        );
+        """)
+        # f.write("\n".join(insert_queries))
+
+
+    with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,)) as executor:
+        # map handles task distribution and maintains progress tracking context
+        results = list(tqdm(
+            executor.map(process_word, words_meanings),
+            total=total_words,
+            desc="Processing dictionary"
+        ))
+        # insert_queries.append(results)
+

@@ -3,7 +3,7 @@ import { DictionaryData } from "../helpers/typeDefinitions";
 import React from "react";
 import TitleSection from "./main-content/TitleSection";
 import Meanings from "./main-content/Meanings";
-import Source from "./main-content/Source";
+import MeaningsNyms from "./main-content/MeaningsNyms";
 import Separator from "./utilities/Separator";
 
 type propsT = {
@@ -20,16 +20,30 @@ const MainContent: React.FC<propsT> = function ({ data, font }) {
     <Meanings key={i} meanings={value} />
   ));
 
+  const allSimilar: string[] = [];
+
+  // Check root-level similar
+  if (data.similar && data.similar.length > 0) {
+    allSimilar.push(...data.similar);
+  }
+
+  // Also check meaning-level similar
+  data.meanings.forEach(m => {
+    if (m.similar && m.similar.length > 0) {
+      allSimilar.push(...m.similar);
+    }
+  });
+
   return (
     <div className="main-content" style={style}>
-      <TitleSection
-        word={data.word}
-        phonetic={data.phonetic}
-        phonetics={data.phonetics}
-      />
+      <TitleSection word={data.word} />
       {meaningsJSX}
-      <Separator size={"100%"} isHorizontal={true} />
-      <Source sourceUrls={data.sourceUrls} />
+      {allSimilar.length > 0 && (
+        <>
+          <Separator size={"100%"} isHorizontal={true} />
+          <MeaningsNyms name={"Similar"} list={allSimilar} />
+        </>
+      )}
     </div>
   );
 };

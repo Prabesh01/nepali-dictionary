@@ -2,32 +2,16 @@ import { sliceT } from "../store/slices/mainSlice";
 
 export interface DictionaryData {
   word: string;
-  phonetic: string;
-  phonetics: {
-    text: string;
-    audio: string;
-    sourceUrl?: string;
-    license?: {
-      name: string;
-      url: string;
-    };
-  }[];
+  similar?: string[];
   meanings: {
     partOfSpeech: string;
+    etymology?: string;
     definitions: {
       definition: string;
-      synonyms: string[];
-      antonyms: string[];
-      example?: string;
+      examples?: string[];
     }[];
-    synonyms: string[];
-    antonyms: string[];
+    similar?: string[];
   }[];
-  license: {
-    name: string;
-    url: string;
-  };
-  sourceUrls: string[];
 }
 
 export interface DictDataError {
@@ -39,14 +23,12 @@ export interface DictDataError {
 export interface meaningsT {
   meanings: {
     partOfSpeech: string;
+    etymology?: string;
     definitions: {
       definition: string;
-      synonyms: string[];
-      antonyms: string[];
-      example?: string;
+      examples?: string[];
     }[];
-    synonyms: string[];
-    antonyms: string[];
+    similar?: string[];
   };
 }
 

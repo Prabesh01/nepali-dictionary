@@ -14,7 +14,10 @@ const SearchBar = function () {
   const { currentFont } = getSlice();
   const goto = useGoTo();
   const location = useLocation();
-  const currentWord = decodeURIComponent(location.pathname.slice(1)).replaceAll("_", " ");
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const currentWord = pathParts[0] === 'word' && pathParts[1]
+    ? decodeURIComponent(pathParts[1]).replaceAll("_", " ")
+    : "";
   const [invalid, setInvalid] = useState<boolean | string>(false);
   const [inputValue, setInputValue] = useState<string>(currentWord);
   const [dictionaryMap, setDictionaryMap] = useState<Record<string, string[]>>({});

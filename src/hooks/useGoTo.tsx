@@ -8,7 +8,7 @@ function useGoTo() {
     const pathWithUnderscores = formatForUrl(path);
 
     if (!pathWithUnderscores) return;
-    navigate(pathWithUnderscores, options);
+    navigate("/word/" + pathWithUnderscores, options);
   }
 
   return navigateWithUnderscores;

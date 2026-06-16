@@ -12,7 +12,7 @@ const MeaningsNyms = function ({ name, list }: propsT) {
   if (list.length < 1) return null;
 
   const JSX = list.map((v, i) => (
-    <Link to={formatForUrl(v)} key={i}>
+    <Link to={"/word/" + formatForUrl(v)} key={i}>
       <li>{v}</li>
     </Link>
   ));

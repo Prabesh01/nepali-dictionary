@@ -1,5 +1,4 @@
 @import "src/App";
-@import "src/index";
 
 .meanings {
   & ul {
@@ -16,6 +15,21 @@
         font-size: 2rem;
         margin-right: 2rem;
       }
+
+      & a.crosslink {
+        color: inherit;
+        text-decoration: underline;
+        text-decoration-color: rgba($font-color, 0.3);
+        text-underline-offset: 2px;
+
+        .light & {
+          text-decoration-color: rgba($light-font-color, 0.3);
+        }
+
+        &:hover {
+          text-decoration-color: $primary-color;
+        }
+      }
     }
   }
 
@@ -23,5 +37,22 @@
     @include flex-center;
     margin-top: 3rem;
     max-height: 12rem;
+
+    & h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+
+      & .etymology {
+        color: #d4a74e;
+        font-size: 1.8rem;
+        font-weight: 400;
+        font-style: normal;
+
+        .light & {
+          color: #c49639;
+        }
+      }
+    }
   }
 }

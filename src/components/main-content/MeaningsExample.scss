@@ -7,4 +7,19 @@
   .light & {
     color: rgba($light-font-color, 65%);
   }
+
+  & a.crosslink {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba($font-color, 0.3);
+    text-underline-offset: 2px;
+
+    .light & {
+      text-decoration-color: rgba($light-font-color, 0.3);
+    }
+
+    &:hover {
+      text-decoration-color: $primary-color;
+    }
+  }
 }
