@@ -40,8 +40,7 @@ if __name__ == '__main__':
         next(reader, None) # Skip header
         for row in reader:
             if row and row[1].strip():
-                if len(row[1].strip().split())==1:
-                    words_list.append(row[1].strip())
+                words_list.append(row[1].strip())
 
     total_words = len(words_list)
     optimized_dictionary = {}
