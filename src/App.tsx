@@ -4,19 +4,22 @@ import SearchBar from "./components/SearchBar";
 import MainContent from "./components/MainContent";
 import NotFound from "./components/main-content/Error/NotFound";
 import { useEffect, useState } from "react";
-import { getSlice, getCurrentWord, getData } from "./helpers/functions";
+import { getSlice, getData } from "./helpers/functions";
 import { DictDataError, DictionaryData } from "./helpers/typeDefinitions";
 import LightMode from "./components/navbar/theme-switch/LightMode";
 import { sliceT } from "./store/slices/mainSlice";
 import Loading from "./components/Loading";
+import { useLocation } from "react-router-dom";
 
 const App = function () {
-  const currentWord: string = getCurrentWord();
+  const location = useLocation();
+  const currentWord: string = decodeURIComponent(location.pathname.slice(1)).replaceAll("_", " ");
   const { currentFont, nightMode }: sliceT = getSlice();
   const [loading, setLoading] = useState(false);
   const [apiData, setApiData] = useState<DictionaryData[] | DictDataError>();
 
   useEffect(() => {
+    if (!currentWord) return;
     setLoading(true);
     getData(currentWord)
       .then((v) => {

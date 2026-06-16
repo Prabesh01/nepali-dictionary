@@ -2,24 +2,77 @@ import "./SearchBar.scss";
 import searchIcon from "../assets/images/icon-search.svg";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  getCurrentWord,
   getSlice,
   specialCharsCheck,
 } from "../helpers/functions";
 import useGoTo from "../hooks/useGoTo";
 import Invalid from "./search-bar/Invalid";
+import { useLocation } from "react-router-dom";
 
 const SearchBar = function () {
   const searchRef = useRef<HTMLInputElement>(null);
   const { currentFont } = getSlice();
   const goto = useGoTo();
-  const currentWord = getCurrentWord();
+  const location = useLocation();
+  const currentWord = decodeURIComponent(location.pathname.slice(1)).replaceAll("_", " ");
   const [invalid, setInvalid] = useState<boolean | string>(false);
   const [inputValue, setInputValue] = useState<string>(currentWord);
+  const [dictionaryMap, setDictionaryMap] = useState<Record<string, string[]>>({});
+  const [allKeys, setAllKeys] = useState<string[]>([]);
+  const [matches, setMatches] = useState<string[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    fetch('/dictionary-map.json')
+      .then(res => res.json())
+      .then((dict: Record<string, string[]>) => {
+        setDictionaryMap(dict);
+        setAllKeys(Object.keys(dict));
+      });
+  }, []);
 
   if (searchRef.current) searchRef.current.focus();
 
   const invalidMsg = "Invalid charater...";
+
+  const findStartIndex = (query: string): number => {
+    let low = 0;
+    let high = allKeys.length - 1;
+    let result = 0;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (allKeys[mid] >= query) {
+        result = mid;
+        high = mid - 1;
+      } else {
+        low = mid + 1;
+      }
+    }
+    return result;
+  };
+
+  const searchBinaryAutocomplete = (userInput: string): string[] => {
+    const query = userInput.trim().toLowerCase();
+    if (!query) return [];
+
+    const matchedNepaliWords = new Set<string>();
+    const MAX_DISPLAY = 40;
+
+    const startIndex = findStartIndex(query);
+
+    for (let i = startIndex; i < allKeys.length; i++) {
+      const key = allKeys[i];
+
+      if (key.startsWith(query)) {
+        dictionaryMap[key].forEach(word => matchedNepaliWords.add(word));
+        if (matchedNepaliWords.size >= MAX_DISPLAY) break;
+      } else {
+        break;
+      }
+    }
+    return Array.from(matchedNepaliWords);
+  };
 
   const handleSubmit = function (e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,8 +83,15 @@ const SearchBar = function () {
 
     if (!value) return setInvalid("Whoops, can't be empty...");
 
-    goto(value);
+    if (matches.length === 1) {
+      goto(matches[0]);
+    } else if (matches.length > 1) {
+      return;
+    } else {
+      goto(value);
+    }
     setInvalid(false);
+    setShowDropdown(false);
   };
 
   const handleChange = function () {
@@ -43,6 +103,36 @@ const SearchBar = function () {
 
     setInputValue(value);
     setInvalid(false);
+
+    if (!value.trim()) {
+      setMatches([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const results = searchBinaryAutocomplete(value);
+
+      setMatches(results);
+
+      if (results.length === 1) {
+        setInputValue(results[0]);
+        goto(results[0]);
+        setShowDropdown(false);
+      } else if (results.length > 1) {
+        setShowDropdown(true);
+      } else {
+        setShowDropdown(false);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  };
+
+  const handleSelectWord = (word: string) => {
+    goto(word);
+    setShowDropdown(false);
+    setInputValue(word);
   };
 
   useEffect(() => setInputValue(currentWord), [currentWord]);
@@ -65,6 +155,20 @@ const SearchBar = function () {
         </button>
       </form>
       <Invalid invalid={invalid} />
+      {showDropdown && matches.length > 0 && (
+        <div className="autocomplete-dropdown">
+          {matches.map((word, idx) => (
+            <div
+              key={idx}
+              className="autocomplete-item"
+              onClick={() => handleSelectWord(word)}
+              style={{ fontFamily: currentFont.cssValue }}
+            >
+              {word}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
