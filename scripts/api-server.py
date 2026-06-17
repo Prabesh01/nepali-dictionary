@@ -83,7 +83,7 @@ def get_word(word):
     result = get_word_from_db(word,api=True)
 
     if not result:
-        return jsonify({"title": "No Definitions Found", "message": f"Sorry, we couldn't find definitions for the word '{word}'.", "resolution": "You can try the search again at a later time or head to the web instead."}), 404
+        return jsonify({"title": "भेटिएन ", "message": f"'{word}' फेला पार्न सकिएन - यसलाई भन्छ ४०४ हुनु।", "resolution": "अरु नै केही हानेर हेरौँ, चल्छ होला । "}), 404
 
     html_meaning, suggestions = result
     meanings = json.loads(html_meaning) if html_meaning else []

@@ -164,7 +164,11 @@ const SearchBar = function () {
     setInputValue(word);
   };
 
-  useEffect(() => setInputValue(currentWord), [currentWord]);
+  useEffect(() => {
+    setInputValue(currentWord);
+    setShowDropdown(false);
+    setMatches([]);
+  }, [currentWord]);
 
   return (
     <div className={`search-container`}>

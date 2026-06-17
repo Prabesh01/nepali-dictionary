@@ -1,6 +1,6 @@
 import "./RecentSearches.scss";
 import { Link } from "react-router-dom";
-import { formatForUrl } from "../../helpers/functions";
+import { formatForUrl, getSlice } from "../../helpers/functions";
 
 type propsT = {
   recentSearches: string[];
@@ -8,10 +8,12 @@ type propsT = {
 };
 
 const RecentSearches = function ({ recentSearches, onClear }: propsT) {
+  const { currentFont } = getSlice();
+
   if (recentSearches.length === 0) return null;
 
   return (
-    <div className="recent-searches">
+    <div className="recent-searches" style={{ fontFamily: currentFont.cssValue }}>
       <button className="clear-btn" onClick={onClear} title="Clear recent searches">
         ×
       </button>

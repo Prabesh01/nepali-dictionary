@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import SearchBar from "./components/SearchBar";
 import MainContent from "./components/MainContent";
 import NotFound from "./components/main-content/Error/NotFound";
+import Footer from "./components/Footer";
 import { useEffect, useState } from "react";
 import { getSlice, getData } from "./helpers/functions";
 import { DictDataError, DictionaryData } from "./helpers/typeDefinitions";
@@ -24,6 +25,7 @@ const App = function () {
   useEffect(() => {
     if (!currentWord) {
       setApiData(undefined);
+      setLoading(false);
       document.title = `नेपाली शब्दकोश`;
       return;
     }
@@ -56,6 +58,7 @@ const App = function () {
       <Navbar />
       <SearchBar />
       {loading ? <Loading /> : contentOrError}
+      <Footer />
     </div>
   );
 };
