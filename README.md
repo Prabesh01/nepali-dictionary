@@ -1,16 +1,27 @@
-# Dictionary Web App
+# Nepali Dictionary Web App
 
-[Live Website](https://dictionary-web-app-0.netlify.app/)
+[Live Website](https://npdictionary.prax.to/)
 
-[API: Dictionary API](https://dictionaryapi.dev/)
+### Reqirements
+- sqlite3
+- npm
+- `pip install git+https://github.com/Prabesh01/nepali-unicode-converter tqdm flask rapidfuzz beautifulsoup4`
 
-![Screenshot](https://repository-images.githubusercontent.com/609153398/05574225-f7d7-4009-b935-265c4dad32bc)
+### Generate Required Files
 
-Enlglish Dictionary WebApp that allows you to change font types and toggle between light and dark mode. Fundamental in helping me understand typescript type definitions/declarations, react-router and redux substantially better and making me more confortable using it.
+#### Generate variants json for quick search in SPA frontend
+- `python scripts/words-list-generator.py`
+- Input: scripts/sabdakosh.csv. Output: public/dictionary-map.json
 
-It saves preferences between sessions. I tried making it responsive from the beggining so it required minimal coding to adapt it to different screen sizes.
+### Generate db schema for Server-side API calls and SEO metadata rendering
+- `python scripts/dictionary-db-generator.py` (takes 10-20 mins)
+- Input: scripts/sabdakosh.csv. Output: scripts/schema.sql
 
-The url reflects current query, so it doesn't go away on refresh
+### Usage
 
-It takes fonts from the `fonts.json` file so it is incredibly easy to add new fonts, if default in css requires no additional coding, local requires adding the font name in the `$font-names` variable in `App.scss`, folders must mantain same structure and main tff file must have the same name as folder. Index number one of json file is default if no font has been picked.
-
+#### Running it locally
+- Crete sqlite database from schema: `sqlite3 scripts/dictionary.db < scripts/schema.sql`
+- `npm install`
+- `npm run build`
+- Run flask server: `python scripts/api-server.py`
+- Visit http://127.0.0.1:5000/

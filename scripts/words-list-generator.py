@@ -7,6 +7,8 @@ from tqdm import tqdm
 
 from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
 
+basepath =  os.path.dirname(os.path.abspath(__file__))
+
 # Worker initialization function to instantiate converters per-process safely
 def init_worker():
     global rev, rev2, smart_rev, smart_rev2, rev3
@@ -35,7 +37,7 @@ if __name__ == '__main__':
 
     # Read words into memory quickly
     print("Reading CSV file...")
-    with open('sabdakosh.csv', 'r', encoding='utf-8') as f:
+    with open(f'{basepath}/sabdakosh.csv', 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         next(reader, None) # Skip header
         for row in reader:
@@ -69,6 +71,6 @@ if __name__ == '__main__':
 
     # Export
     print("Saving compressed JSON dataset...")
-    with open('words.json', 'w', encoding='utf-8') as outfile:
+    with open(f'{os.path.dirname(basepath)}/public/dictionary-map.json', 'w', encoding='utf-8') as outfile:
         json.dump(optimized_dictionary, outfile, ensure_ascii=False, indent=2, sort_keys=True)
     print(f"\n✨ Successfully compressed {len(optimized_dictionary)} words!")

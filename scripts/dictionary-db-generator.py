@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 
 from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
 
+basepath =  os.path.dirname(os.path.abspath(__file__))
 abbr_index ={
 }
 
@@ -171,7 +172,7 @@ if __name__ == '__main__':
 
     # Read words into memory quickly
     print("Reading CSV file...")
-    with open('sabdakosh.csv', 'r', encoding='utf-8') as f:
+    with open(f'{basepath}/sabdakosh.csv', 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
         next(reader, None) # Skip header
         for row in reader:
@@ -187,7 +188,7 @@ if __name__ == '__main__':
     num_workers = os.cpu_count()
     print(f"Starting db generation engine using {num_workers} CPU cores...")
 
-    with open("schema.sql", "w", encoding="utf-8") as f:
+    with open(f"{basepath}/schema.sql", "w", encoding="utf-8") as f:
         f.write("""
         PRAGMA synchronous = OFF;
         PRAGMA journal_mode = MEMORY;
@@ -210,11 +211,11 @@ if __name__ == '__main__':
     with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,length_index)) as executor:
         # map handles task distribution and maintains progress tracking context
         results = list(tqdm(
-            executor.map(process_word, words_meanings, chunksize=1000),
+            executor.map(process_word, words_meanings[:5], chunksize=1000),
             total=total_words,
             desc="Processing dictionary"
         ))
 
-    with open("schema.sql", "a", encoding="utf-8") as f:
+    with open(f"{basepath}/schema.sql", "a", encoding="utf-8") as f:
         f.write("\n".join(results))
         f.write("\nCOMMIT;\n")
