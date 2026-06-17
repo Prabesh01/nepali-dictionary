@@ -189,6 +189,10 @@ if __name__ == '__main__':
 
     with open("schema.sql", "w", encoding="utf-8") as f:
         f.write("""
+        PRAGMA synchronous = OFF;
+        PRAGMA journal_mode = MEMORY;
+        BEGIN TRANSACTION;
+
         DROP TABLE IF EXISTS dictionary;
         CREATE TABLE dictionary (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,6 +202,7 @@ if __name__ == '__main__':
             html_meaning TEXT,
             suggestions TEXT
         );
+        CREATE INDEX idx_dictionary_word ON dictionary (word);
         """)
         # f.write("\n".join(insert_queries))
 
@@ -212,3 +217,4 @@ if __name__ == '__main__':
 
     with open("schema.sql", "a", encoding="utf-8") as f:
         f.write("\n".join(results))
+        f.write("\nCOMMIT;\n")
