@@ -4,8 +4,10 @@ import os
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
-import difflib
+# import difflib
+from rapidfuzz import process as rf_process, fuzz as rf_fuzz
 import re
+from collections import defaultdict
 from bs4 import BeautifulSoup
 
 from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
@@ -13,15 +15,24 @@ from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
 abbr_index ={
 }
 
+def build_length_index(words_list):
+    """Bucket words by length so similarity search never touches the full list."""
+    idx = defaultdict(list)
+    for w in words_list:
+        idx[len(w)].append(w)
+    return idx
+
 # Worker initialization function to instantiate converters per-process safely
-def init_worker(shared_words_list):
-    global rev, rev2, smart_rev, smart_rev2, rev3, words_list
+def init_worker(shared_words_list, shared_len_index):
+    global rev, rev2, smart_rev, smart_rev2, rev3, words_list, len_idx
     words_list = shared_words_list
     rev = ReverseConverter()
     rev2 = ReverseConverterV2()
     smart_rev = ReverseConverter(smart=True)
     smart_rev2 = ReverseConverterV2(smart=True)
     rev3 = ReverseConverterV2(smart=True,custom_mappings={'ba': 'व'})
+    len_idx = shared_len_index
+
 
 def get_variants(nepali_word):
     val_v1 = rev.convert(nepali_word).lower()
@@ -36,7 +47,25 @@ def get_variants(nepali_word):
     return list(unique_keys)
 
 def get_similar_words(target_word):
-    matches = difflib.get_close_matches(target_word, words_list, n=5, cutoff=0.3)
+    radius = 2
+    candidates = []
+    target_len = len(target_word)
+
+    while len(candidates) < 50 and radius <= 11:
+        candidates = []
+        for l in range(max(1, target_len - radius), target_len + radius + 1):
+            candidates.extend(len_idx.get(l, []))
+        radius += 2
+
+    if not candidates:
+        return []
+
+    results = rf_process.extract(
+            target_word, candidates, scorer=rf_fuzz.ratio, limit=10, score_cutoff=30
+        )
+    matches = [r[0] for r in results]
+
+    # matches = difflib.get_close_matches(target_word, words_list, n=6, cutoff=0.3)
     return [m for m in matches if m != target_word]
 
 def linkify_text(text):
@@ -55,34 +84,37 @@ def process_word(wmeaning):
     word,meaning=wmeaning
 
     meaning = re.sub(r'<span[^>]*>.*?</span>', '', meaning, count=1)
-    meaning_cleaned = re.sub(r'^(<br/>)+', '', meaning).strip()
+    meaning_cleaned = re.sub(r'^(<br/>)+', '', meaning, flags=re.DOTALL).strip()
     
     plain_meaning = BeautifulSoup(meaning_cleaned, 'html.parser').get_text()
 
     meanings=[]
     raw_pos = "??"
-    sub_blocks = re.split(r'<p▤>.*?</p>', meaning_cleaned)
+    sub_blocks = re.split(r'<p▤>.*?</p>', meaning_cleaned, flags=re.DOTALL)
+
     for block in sub_blocks:
         block = block.strip()
         if not block:
             continue
 
-        etym_match = re.search(r'<a◰>(.*?)</a>', block)
+        etym_match = re.search(r'<a◰>(.*?)</a>', block, flags=re.DOTALL)
         etymology = etym_match.group(1).strip() if etym_match else None
-        block = re.sub(r'<a◰>(.*?)</a>', '', block)
+        block = re.sub(r'<a◰>(.*?)</a>', '', block, flags=re.DOTALL)
 
-        pos_match = re.search(r'<a◳>(.*?)</a>', block)
+        pos_match = re.search(r'<a◳>(.*?)</a>', block, flags=re.DOTALL)
         if pos_match:
             raw_pos = pos_match.group(1).strip()
-            block = re.sub(r'<a◳>(.*?)</a>', '', block)
+            block = re.sub(r'<a◳>(.*?)</a>', '', block, flags=re.DOTALL)
 
-        raw_definitions = re.findall(r'<p▦>(.*?)</p>', block)
+        raw_definitions = re.findall(r'<p▦>(.*?)</p>', block, flags=re.DOTALL)
+
         clean_definitions = []
 
         for d in raw_definitions:
             examples = []
             
-            example_match = re.search(r'<span▧>(.*?)</span>', d)
+            example_match = re.search(r'<span▧>(.*?)</span>', d, flags=re.DOTALL)
+
             if example_match:
                 raw_example_text = example_match.group(1).strip()
                 
@@ -90,8 +122,8 @@ def process_word(wmeaning):
                 
                 examples = [ex.strip() for ex in re.split(r'(?<=[।?!])\s+', clean_example) if ex.strip()]
 
-                d = re.sub(r'<br\s*/?>\s*<span▧>.*?</span>', '', d)
-                d = re.sub(r'<span▧>.*?</span>', '', d)
+                d = re.sub(r'<br\s*/?>\s*<span▧>.*?</span>', '', d, flags=re.DOTALL)
+                d = re.sub(r'<span▧>.*?</span>', '', d, flags=re.DOTALL)
 
             clean_def = re.sub(r'^\s*\d+\.\s+', '', d).strip()
 
@@ -128,7 +160,7 @@ def process_word(wmeaning):
     INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions) 
     VALUES ('{word_esc}', '{variants_esc}', '{plain_esc}', '{html_esc}', '{sug_esc}');
     """
-
+    return ok
     with open("schema.sql", "a", encoding="utf-8") as f:
         f.write(ok)
 
@@ -148,7 +180,8 @@ if __name__ == '__main__':
                 words_list.add(row[1].strip())
 
     total_words = len(words_meanings)
-    insert_queries = []
+    print("Building length index for fast similarity lookup...")
+    length_index = build_length_index(words_list)
 
     # Process words in parallel using available CPU cores
     num_workers = os.cpu_count()
@@ -169,12 +202,13 @@ if __name__ == '__main__':
         # f.write("\n".join(insert_queries))
 
 
-    with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,)) as executor:
+    with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,length_index)) as executor:
         # map handles task distribution and maintains progress tracking context
         results = list(tqdm(
-            executor.map(process_word, words_meanings),
+            executor.map(process_word, words_meanings, chunksize=1000),
             total=total_words,
             desc="Processing dictionary"
         ))
-        # insert_queries.append(results)
 
+    with open("schema.sql", "a", encoding="utf-8") as f:
+        f.write("\n".join(results))
