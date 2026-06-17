@@ -1,12 +1,35 @@
 import "./MeaningsExample.scss";
-import React from "react";
+import React, { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 type propsT = { example: string | void };
 
 const MeaningsExample = function ({ example }: propsT) {
+  const exampleRef = useRef<HTMLParagraphElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A' && target.classList.contains('crosslink')) {
+        e.preventDefault();
+        const href = target.getAttribute('href');
+        if (href) {
+          navigate(href);
+        }
+      }
+    };
+
+    const p = exampleRef.current;
+    if (p) {
+      p.addEventListener('click', handleClick);
+      return () => p.removeEventListener('click', handleClick);
+    }
+  }, [navigate]);
+
   if (!example) return null;
 
-  return <p className="example" dangerouslySetInnerHTML={{ __html: example }} />;
+  return <p ref={exampleRef} className="example" dangerouslySetInnerHTML={{ __html: example }} />;
 };
 
 export default MeaningsExample;

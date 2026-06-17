@@ -8,8 +8,9 @@ import { Link } from "react-router-dom";
 const Navbar = function () {
   return (
     <div className="navbar">
-      <Link to="/">
+      <Link to="/" className="navbar-logo-link">
         <img src={logo} alt="Dictionary logo" />
+        <span className="navbar-title">नेपाली शब्दकोश</span>
       </Link>
       <FontSelector />
       <Separator isHorizontal={false} size={"3.2rem"} />

@@ -1,17 +1,22 @@
 [
   {
     "id": 0,
-    "name": "Sans Serif",
-    "cssValue": "inter"
+    "name": "Noto Sans Devanagari",
+    "cssValue": "'Noto Sans Devanagari', sans-serif"
   },
   {
     "id": 1,
-    "name": "Serif",
-    "cssValue": "lora"
+    "name": "Mukta",
+    "cssValue": "'Mukta', sans-serif"
   },
   {
     "id": 2,
-    "name": "Mono",
-    "cssValue": "inconsolata"
+    "name": "Halant",
+    "cssValue": "'Halant', serif"
+  },
+  {
+    "id": 3,
+    "name": "Sahitya",
+    "cssValue": "'Sahitya', serif"
   }
 ]

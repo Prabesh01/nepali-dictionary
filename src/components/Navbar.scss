@@ -8,6 +8,28 @@
   max-height: 3.6rem;
   margin: 1rem 0;
 
+  & .navbar-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    text-decoration: none;
+    cursor: pointer;
+
+    & .navbar-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: $font-color;
+
+      .light & {
+        color: $light-font-color;
+      }
+
+      @media (max-width: 640px) {
+        font-size: 1.6rem;
+      }
+    }
+  }
+
   & img {
     width: 3.2rem;
   }

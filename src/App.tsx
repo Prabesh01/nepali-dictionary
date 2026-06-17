@@ -22,13 +22,17 @@ const App = function () {
   const [apiData, setApiData] = useState<DictionaryData[] | DictDataError>();
 
   useEffect(() => {
-    if (!currentWord) return;
+    if (!currentWord) {
+      setApiData(undefined);
+      document.title = `नेपाली शब्दकोश`;
+      return;
+    }
     setLoading(true);
     getData(currentWord)
       .then((v) => {
         setApiData(v);
-        if (!v || v.title) return (document.title = `Dictionary | Home`);
-        document.title = `Dictionary | ${v[0].word}`;
+        if (!v || v.title) return (document.title = `नेपाली शब्दकोश`);
+        document.title = `${v[0].word} - नेपाली शब्दकोश`;
       })
       .then(() => {
         window.scrollTo(0, 0);

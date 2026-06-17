@@ -61,9 +61,15 @@
       cursor: pointer;
       position: absolute;
       right: 0;
+      top: 0;
       background-size: 2rem 2rem;
       width: 10%;
-      height: 90%;
+      height: 6.4rem;
+
+      & img {
+        width: 2rem;
+        height: 2rem;
+      }
 
       &:hover {
         background-color: rgba($font-color, 0.06);

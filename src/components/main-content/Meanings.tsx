@@ -1,12 +1,34 @@
 import "./Meanings.scss";
 import { meaningsT } from "../../helpers/typeDefinitions";
 import Separator from "../utilities/Separator";
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import MeaningsNyms from "./MeaningsNyms";
 import MeaningsExample from "./MeaningsExample";
+import { useNavigate } from "react-router-dom";
 
 const Meanings: React.FC<meaningsT> = function ({ meanings }) {
   const { partOfSpeech, etymology, definitions } = meanings;
+  const definitionsRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A' && target.classList.contains('crosslink')) {
+        e.preventDefault();
+        const href = target.getAttribute('href');
+        if (href) {
+          navigate(href);
+        }
+      }
+    };
+
+    const div = definitionsRef.current;
+    if (div) {
+      div.addEventListener('click', handleClick);
+      return () => div.removeEventListener('click', handleClick);
+    }
+  }, [navigate]);
 
   const definitionJSX = definitions.map((v, i) => (
     <li key={i}>
@@ -25,7 +47,7 @@ const Meanings: React.FC<meaningsT> = function ({ meanings }) {
         <Separator isHorizontal={true} size={"100%"} margin={"4.4rem 0"} />
       </div>
 
-      <div className="defintions">
+      <div className="defintions" ref={definitionsRef}>
         <ul>{definitionJSX}</ul>
       </div>
     </div>

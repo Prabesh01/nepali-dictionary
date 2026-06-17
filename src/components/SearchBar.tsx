@@ -7,7 +7,10 @@ import {
 } from "../helpers/functions";
 import useGoTo from "../hooks/useGoTo";
 import Invalid from "./search-bar/Invalid";
+import RecentSearches from "./search-bar/RecentSearches";
 import { useLocation } from "react-router-dom";
+
+const RECENT_SEARCHES_KEY = "recentSearches";
 
 const SearchBar = function () {
   const searchRef = useRef<HTMLInputElement>(null);
@@ -24,6 +27,29 @@ const SearchBar = function () {
   const [allKeys, setAllKeys] = useState<string[]>([]);
   const [matches, setMatches] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (stored) {
+      setRecentSearches(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentWord) {
+      setRecentSearches(prev => {
+        const updated = [currentWord, ...prev.filter(w => w !== currentWord)].slice(0, 8);
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [currentWord]);
+
+  const handleClearRecent = () => {
+    setRecentSearches([]);
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  };
 
   useEffect(() => {
     fetch('/dictionary-map.json')
@@ -149,7 +175,7 @@ const SearchBar = function () {
           onChange={handleChange}
           type="text"
           className={`search-bar ${invalid ? "invalid" : ""}`}
-          placeholder="Search for any word..."
+          placeholder="यहाँ टाइप गर्नुहोस् …"
           maxLength={50}
           value={inputValue}
         />
@@ -158,6 +184,7 @@ const SearchBar = function () {
         </button>
       </form>
       <Invalid invalid={invalid} />
+      <RecentSearches recentSearches={recentSearches} onClear={handleClearRecent} />
       {showDropdown && matches.length > 0 && (
         <div className="autocomplete-dropdown">
           {matches.map((word, idx) => (

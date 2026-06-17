@@ -41,7 +41,7 @@ const MainContent: React.FC<propsT> = function ({ data, font }) {
       {allSimilar.length > 0 && (
         <>
           <Separator size={"100%"} isHorizontal={true} />
-          <MeaningsNyms name={"Similar"} list={allSimilar} />
+          <MeaningsNyms name={"यस्तै अरू"} list={allSimilar} />
         </>
       )}
     </div>

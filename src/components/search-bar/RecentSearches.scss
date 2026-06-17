@@ -1,0 +1,67 @@
+@import "src/App";
+
+.recent-searches {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.5rem;
+  background-color: rgba($font-color, 0.03);
+  border-radius: 1.2rem;
+
+  .light & {
+    background-color: rgba($light-font-color, 0.03);
+  }
+
+  & .clear-btn {
+    font-size: 2.4rem;
+    font-weight: 300;
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: rgba($font-color, 0.4);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s;
+
+    .light & {
+      color: rgba($light-font-color, 0.4);
+    }
+
+    &:hover {
+      color: $primary-color;
+    }
+  }
+
+  & .recent-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    flex: 1;
+
+    & .recent-tag {
+      padding: 0.5rem 1.2rem;
+      font-size: 1.4rem;
+      background-color: rgba($font-color, 0.05);
+      color: rgba($font-color, 0.6);
+      border-radius: 0.8rem;
+      text-decoration: none;
+      transition: all 0.2s;
+
+      .light & {
+        background-color: rgba($light-font-color, 0.05);
+        color: rgba($light-font-color, 0.7);
+      }
+
+      &:hover {
+        background-color: rgba($primary-color, 0.1);
+        color: $primary-color;
+      }
+    }
+  }
+}
