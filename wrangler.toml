@@ -1,0 +1,12 @@
+name = "npdictionary"
+main = "cf/worker.js"
+compatibility_date = "2026-06-01"
+
+[assets]
+directory = "./dist" 
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dictionary-db"
+database_id = "aec71139-ed18-4b3d-baae-fbd911f95ad0"

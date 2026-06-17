@@ -80,6 +80,7 @@ def generate_word_html(word,result):
 
 @app.route('/api/word/<word>')
 def get_word(word):
+    word = word.replace('_', ' ')
     result = get_word_from_db(word,api=True)
 
     if not result:
