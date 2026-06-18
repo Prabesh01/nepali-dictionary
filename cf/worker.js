@@ -21,7 +21,7 @@ export default {
 
 async function handleApiWord(word, env) {
   const row = await env.DB.prepare(
-    `SELECT html_meaning, suggestions FROM dictionary WHERE word = ?`
+    `SELECT html_meaning, suggestions, abbr FROM dictionary WHERE word = ?`
   ).bind(word).first();
 
   if (!row) {
@@ -38,7 +38,29 @@ async function handleApiWord(word, env) {
   } catch {
     meanings = []; 
   }
-  const similar = row.suggestions ? row.suggestions.split(', ') : [];
+  let similar = row.suggestions ? row.suggestions.split(', ') : [];
+
+  if (word.endsWith('.')) {
+    const searchPattern = `%,${word},%`;
+
+    try {
+      const { results } = await env.DB.prepare(
+        `SELECT word FROM dictionary WHERE abbr LIKE ? ORDER BY RANDOM() LIMIT 50`
+      ).bind(searchPattern).all();
+
+      if (results && results.length > 0) {
+        similar = results.map(r => r.word);
+      } else {
+        similar = [];
+      }
+    } catch (e) {
+      similar = [];
+    }
+
+    if (row.abbr) {
+      word = `${row.abbr} (${word})`;
+    }
+  }
 
   return new Response(JSON.stringify([{ word, meanings, similar }]), {
     headers: { 'content-type': 'application/json; charset=utf-8' }

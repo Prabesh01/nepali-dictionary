@@ -36,8 +36,8 @@ _One Time:_
 
 _For every schema chagnges:_
 - Get rid of few stuffs that cloudflare wouldn't like:
-  - sed -i 's/INSERT INTO/INSERT OR IGNORE INTO/g' scripts/schema.sql
-  - grep -v -i "^PRAGMA\|^BEGIN\|^COMMIT" scripts/schema.sql > scripts/schema-d1.sql
+  - sed 's/INSERT INTO/INSERT OR IGNORE INTO/g' scripts/schema.sql > scripts/schema-d1_.sql
+  - grep -E -v -i "^\s*(PRAGMA|BEGIN|COMMIT)" scripts/schema-d1_.sql > scripts/schema-d1.sql
 - npx wrangler d1 execute dictionary-db --remote --file=./scripts/schema-d1.sql
 
 _For every frontend changes:_

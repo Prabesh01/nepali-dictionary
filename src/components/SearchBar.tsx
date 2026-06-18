@@ -38,7 +38,7 @@ const SearchBar = function () {
   }, []);
 
   useEffect(() => {
-    if (currentWord) {
+    if (currentWord && !currentWord.endsWith('.')) {
       setRecentSearches(prev => {
         const updated = [currentWord, ...prev.filter(w => w !== currentWord)].slice(0, 8);
         localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));

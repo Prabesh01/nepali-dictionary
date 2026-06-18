@@ -9,12 +9,15 @@ import Separator from "./utilities/Separator";
 type propsT = {
   data: DictionaryData;
   font: string;
+  currentWord: string;
 };
 
-const MainContent: React.FC<propsT> = function ({ data, font }) {
+const MainContent: React.FC<propsT> = function ({ data, font, currentWord }) {
   const style = {
     fontFamily: font,
   };
+
+  const isAbbreviation = currentWord.endsWith('.');
 
   const meaningsJSX = data.meanings.map((value, i) => (
     <Meanings key={i} meanings={value} />
@@ -40,8 +43,23 @@ const MainContent: React.FC<propsT> = function ({ data, font }) {
       {meaningsJSX}
       {allSimilar.length > 0 && (
         <>
-          <Separator size={"100%"} isHorizontal={true} />
-          <MeaningsNyms name={"यस्तै अरू"} list={allSimilar} />
+          {isAbbreviation && (
+            <div className="meanings">
+              <div className="type-separator-container">
+                <h4>'{currentWord}' समूहका केही शब्दहरू</h4>
+                <Separator isHorizontal={true} size={"100%"} margin={"4.4rem 0"} />
+              </div>
+              <div className="defintions">
+                <MeaningsNyms name="" list={allSimilar} showAsGrid={true} hideHeader={true} />
+              </div>
+            </div>
+          )}
+          {!isAbbreviation && (
+            <>
+              <Separator size={"100%"} isHorizontal={true} />
+              <MeaningsNyms name="यस्तै अरू" list={allSimilar} />
+            </>
+          )}
         </>
       )}
     </div>

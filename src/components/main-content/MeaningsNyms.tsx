@@ -6,9 +6,11 @@ import { formatForUrl } from "../../helpers/functions";
 type propsT = {
   list: string[];
   name: string;
+  showAsGrid?: boolean;
+  hideHeader?: boolean;
 };
 
-const MeaningsNyms = function ({ name, list }: propsT) {
+const MeaningsNyms = function ({ name, list, showAsGrid = false, hideHeader = false }: propsT) {
   if (list.length < 1) return null;
 
   const JSX = list.map((v, i) => (
@@ -18,8 +20,13 @@ const MeaningsNyms = function ({ name, list }: propsT) {
   ));
 
   return (
-    <div className="nyms">
-      <h4>{name}</h4>
+    <div className={`nyms ${showAsGrid ? 'grid-layout' : ''}`}>
+      {!showAsGrid && !hideHeader && <h4>{name}</h4>}
+      {showAsGrid && !hideHeader ? (
+        <div className="grid-header-container">
+          <h3>{name}</h3>
+        </div>
+      ) : null}
       <ul>{JSX}</ul>
     </div>
   );

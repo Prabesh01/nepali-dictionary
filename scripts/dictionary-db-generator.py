@@ -13,8 +13,8 @@ from bs4 import BeautifulSoup
 from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
 
 basepath =  os.path.dirname(os.path.abspath(__file__))
-abbr_index ={
-}
+
+abbr_index = json.load(open(f'{os.path.dirname(basepath)}/public/abbr.json'))
 
 def build_length_index(words_list):
     """Bucket words by length so similarity search never touches the full list."""
@@ -24,16 +24,16 @@ def build_length_index(words_list):
     return idx
 
 # Worker initialization function to instantiate converters per-process safely
-def init_worker(shared_words_list, shared_len_index):
-    global rev, rev2, smart_rev, smart_rev2, rev3, words_list, len_idx
+def init_worker(shared_words_list, shared_len_index, shared_abbr_index):
+    global rev, rev2, smart_rev, smart_rev2, rev3, words_list, len_idx, abbr_index
     words_list = shared_words_list
+    abbr_index = shared_abbr_index
     rev = ReverseConverter()
     rev2 = ReverseConverterV2()
     smart_rev = ReverseConverter(smart=True)
     smart_rev2 = ReverseConverterV2(smart=True)
     rev3 = ReverseConverterV2(smart=True,custom_mappings={'ba': 'व'})
     len_idx = shared_len_index
-
 
 def get_variants(nepali_word):
     val_v1 = rev.convert(nepali_word).lower()
@@ -77,7 +77,7 @@ def linkify_text(text):
             return f'<a href="/word/{word}" class="crosslink">{word}</a>'
         return word
 
-    word_pattern = r'[^\s।,;?!()\[\]{}"\'-]+'
+    word_pattern = r'[^\s।,;?!()\[\]{}"\'<>\+]+'
     
     return re.sub(word_pattern, match_word, text)
 
@@ -90,9 +90,10 @@ def process_word(wmeaning):
     plain_meaning = BeautifulSoup(meaning_cleaned, 'html.parser').get_text()
 
     meanings=[]
-    raw_pos = "??"
+    raw_pos = ""
     sub_blocks = re.split(r'<p▤>.*?</p>', meaning_cleaned, flags=re.DOTALL)
 
+    found_abbrs = set()
     for block in sub_blocks:
         block = block.strip()
         if not block:
@@ -127,22 +128,28 @@ def process_word(wmeaning):
                 d = re.sub(r'<span▧>.*?</span>', '', d, flags=re.DOTALL)
 
             clean_def = re.sub(r'^\s*\d+\.\s+', '', d).strip()
+            if clean_def.startswith("हे."): clean_def=clean_def[3:].strip()
+
+            inline_abbrs=re.findall(r'\(([^()]*?\.)\)', clean_def)
+            for inline_abbr in inline_abbrs: found_abbrs.add(inline_abbr)
 
             linked_def = linkify_text(clean_def)
             linked_examples = [linkify_text(ex) for ex in examples]
 
-            clean_definitions.append({
-                "definition": linked_def,
-                "examples": linked_examples
-            })
+            clean_definition = { "definition": linked_def }
+            if linked_examples: clean_definition["examples"] = linked_examples
+            clean_definitions.append(clean_definition)
 
         if clean_definitions:
+            if raw_pos:found_abbrs.add(raw_pos)
             entry = {
                 "partOfSpeech": raw_pos,
                 "definitions": clean_definitions
             }
             if etymology:
-                entry["etymology"] = etymology
+                abbrs=re.findall(r'[\u0900-\u097F\w]+\.', etymology)
+                for a in abbrs: found_abbrs.add(a)
+                entry["etymology"] = linkify_text(etymology)
 
             meanings.append(entry)
 
@@ -157,10 +164,20 @@ def process_word(wmeaning):
     word_esc = word.replace("'", "''")
     html_esc = json.dumps(meanings, ensure_ascii=False).replace("'", "''")
 
+    abbr_column_val = ""
+    if found_abbrs:
+        abbr_column_val = "," + ",".join(sorted(list(found_abbrs))) + ","
+
     ok= f"""
-    INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions) 
-    VALUES ('{word_esc}', '{variants_esc}', '{plain_esc}', '{html_esc}', '{sug_esc}');
+    INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions, abbr)
+    VALUES ('{word_esc}', '{variants_esc}', '{plain_esc}', '{html_esc}', '{sug_esc}', '{abbr_column_val}');
     """
+    if word in abbr_index:
+        ok+=f"""
+        \n\n
+        INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions, abbr)
+        VALUES ('{abbr_index[word]}.', '{variants_esc}', '{plain_esc}', '{html_esc}', '[]', '{word}');
+        """
     return ok
     with open("schema.sql", "a", encoding="utf-8") as f:
         f.write(ok)
@@ -201,20 +218,44 @@ if __name__ == '__main__':
             variants TEXT,
             plain_meaning TEXT,
             html_meaning TEXT,
-            suggestions TEXT
+            suggestions TEXT,
+            abbr TEXT
         );
         CREATE INDEX idx_dictionary_word ON dictionary (word);
         """)
         # f.write("\n".join(insert_queries))
 
 
-    with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,length_index)) as executor:
+    with ProcessPoolExecutor(max_workers=num_workers, initializer=init_worker, initargs=(words_list,length_index,abbr_index)) as executor:
         # map handles task distribution and maintains progress tracking context
         results = list(tqdm(
-            executor.map(process_word, words_meanings[:5], chunksize=1000),
+            executor.map(process_word, words_meanings, chunksize=1000),
             total=total_words,
             desc="Processing dictionary"
         ))
+
+    init_worker(words_list,length_index,abbr_index)
+    orphan_words = [w for w in abbr_index if w not in words_list]
+    if orphan_words:
+        print(f"--> Processng {len(orphan_words)} orphans abbrs: {orphan_words}")
+        for word in orphan_words:
+            abbr = abbr_index[word]
+
+            variants_str = ", ".join(get_variants(word))
+            plain_meaning = "+".join(word.split())
+            definition = linkify_text(plain_meaning)
+
+            meanings = [{
+                "partOfSpeech": "",
+                "definitions": [{"definition":definition}]
+            }]
+            html_meaning = json.dumps(meanings, ensure_ascii=False)
+
+            ok= f"""
+            INSERT INTO dictionary (word, variants, plain_meaning, html_meaning, suggestions, abbr)
+            VALUES ('{abbr}.', '{variants_str}', '{plain_meaning}', '{html_meaning}', '', '{word}');
+            """
+            results.append(ok)
 
     with open(f"{basepath}/schema.sql", "a", encoding="utf-8") as f:
         f.write("\n".join(results))

@@ -11,6 +11,7 @@ import LightMode from "./components/navbar/theme-switch/LightMode";
 import { sliceT } from "./store/slices/mainSlice";
 import Loading from "./components/Loading";
 import { useLocation } from "react-router-dom";
+import AbbreviationsIndex from "./components/AbbreviationsIndex";
 
 const App = function () {
   const location = useLocation();
@@ -47,9 +48,11 @@ const App = function () {
   let contentOrError: any = "";
 
   if (apiData && Array.isArray(apiData)) {
-    contentOrError = <MainContent data={apiData[0]} font={font} />;
+    contentOrError = <MainContent data={apiData[0]} font={font} currentWord={currentWord} />;
   } else if (apiData) {
     contentOrError = <NotFound data={apiData} />;
+  } else if (!currentWord) {
+    contentOrError = <AbbreviationsIndex font={font} />;
   }
 
   return (

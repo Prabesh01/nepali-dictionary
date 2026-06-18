@@ -16,7 +16,7 @@ def get_word_from_db(word,api=True):
     if not api:
         cursor.execute('SELECT variants, plain_meaning FROM dictionary WHERE word = ?', (word,))
     else:
-        cursor.execute('SELECT html_meaning, suggestions FROM dictionary WHERE word = ?', (word,))
+        cursor.execute('SELECT html_meaning, suggestions, abbr FROM dictionary WHERE word = ?', (word,))
 
     result = cursor.fetchone()
     conn.close()
@@ -86,9 +86,20 @@ def get_word(word):
     if not result:
         return jsonify({"title": "भेटिएन ", "message": f"'{word}' फेला पार्न सकिएन - यसलाई भन्छ ४०४ हुनु।", "resolution": "अरु नै केही हानेर हेरौँ, चल्छ होला । "}), 404
 
-    html_meaning, suggestions = result
+    html_meaning, suggestions, abbr = result
     meanings = json.loads(html_meaning) if html_meaning else []
     similar = suggestions.split(', ') if suggestions else []
+
+    if word.endswith('.'):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+
+        search_pattern = f"%,{word},%"
+        abbr_words_query = cursor.execute('SELECT word FROM dictionary WHERE abbr LIKE ? ORDER BY RANDOM() LIMIT 50', (search_pattern,))
+        abbr_words = abbr_words_query.fetchall()
+        similar = [row[0] for row in abbr_words]
+
+        word = f"{abbr} ({word})"
 
     return jsonify([{
         "word": word,

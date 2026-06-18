@@ -1,0 +1,64 @@
+@import "src/App";
+
+.abbreviations-index {
+  margin: 4rem 0;
+  padding: 0 2rem;
+
+  & h2 {
+    font-size: 2.4rem;
+    margin-bottom: 2rem;
+    color: $font-color;
+
+    .light & {
+      color: $light-font-color;
+    }
+  }
+
+  & .abbr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: 1.2rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+      gap: 1rem;
+    }
+
+    & a {
+      text-decoration: none;
+    }
+  }
+
+  & .abbr-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba($primary-color, 0.05);
+    border-radius: 0.5rem;
+    transition: background 0.2s;
+
+    .light & {
+      background: rgba($primary-color, 0.08);
+    }
+
+    &:hover {
+      background: rgba($primary-color, 0.1);
+    }
+
+    & .abbr-short {
+      color: $primary-color;
+      font-weight: 700;
+      font-size: 1.6rem;
+      min-width: 4rem;
+    }
+
+    & .abbr-full {
+      color: $font-color;
+      font-size: 1.6rem;
+
+      .light & {
+        color: $light-font-color;
+      }
+    }
+  }
+}
