@@ -60,7 +60,11 @@ const SearchBar = function () {
       });
   }, []);
 
-  if (searchRef.current) searchRef.current.focus();
+  useEffect(() => {
+    if (!currentWord && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [currentWord]);
 
   const invalidMsg = "Invalid charater...";
 
