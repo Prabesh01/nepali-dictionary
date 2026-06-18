@@ -52,13 +52,21 @@
       border-radius: 0.8rem;
       text-decoration: none;
       transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
 
       .light & {
         background-color: rgba($light-font-color, 0.05);
         color: rgba($light-font-color, 0.7);
       }
 
-      &:hover {
+      @media (hover: hover) {
+        &:hover {
+          background-color: rgba($primary-color, 0.1);
+          color: $primary-color;
+        }
+      }
+
+      &:active {
         background-color: rgba($primary-color, 0.1);
         color: $primary-color;
       }
