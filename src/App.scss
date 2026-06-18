@@ -57,10 +57,18 @@ body {
 }
 
 .app {
-  margin: $app-margin auto;
-  padding: 0 3rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: $app-margin 3rem;
   max-width: 80rem;
   font-size: 3rem;
+  display: flex;
+  flex-direction: column;
+
+  & .app-content {
+    flex: 1;
+    min-height: 0;
+  }
 
   & .light {
     body {

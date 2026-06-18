@@ -55,9 +55,11 @@ const App = function () {
   return (
     <div className={`app ${nightMode ? "" : "light"}`}>
       <LightMode switch={nightMode} />
-      <Navbar />
-      <SearchBar />
-      {loading ? <Loading /> : contentOrError}
+      <div className="app-content">
+        <Navbar />
+        <SearchBar />
+        {loading ? <Loading /> : contentOrError}
+      </div>
       <Footer />
     </div>
   );
