@@ -28,6 +28,7 @@ const SearchBar = function () {
   const [matches, setMatches] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [lastKeyWasBackspace, setLastKeyWasBackspace] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
@@ -127,6 +128,10 @@ const SearchBar = function () {
     setShowDropdown(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    setLastKeyWasBackspace(e.key === 'Backspace' || e.key === 'Delete');
+  };
+
   const handleChange = function () {
     if (!searchRef.current) return;
 
@@ -143,16 +148,18 @@ const SearchBar = function () {
       return;
     }
 
+    const wasBackspace = lastKeyWasBackspace;
+
     const timer = setTimeout(() => {
       const results = searchBinaryAutocomplete(value);
 
       setMatches(results);
 
-      if (results.length === 1) {
+      if (results.length === 1 && !wasBackspace) {
         setInputValue(results[0]);
         goto(results[0]);
         setShowDropdown(false);
-      } else if (results.length > 1) {
+      } else if (results.length >= 1) {
         setShowDropdown(true);
       } else {
         setShowDropdown(false);
@@ -180,6 +187,7 @@ const SearchBar = function () {
         <input
           style={{ fontFamily: currentFont.cssValue }}
           ref={searchRef}
+          onKeyDown={handleKeyDown}
           onChange={handleChange}
           type="text"
           className={`search-bar ${invalid ? "invalid" : ""}`}
