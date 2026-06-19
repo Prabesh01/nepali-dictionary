@@ -14,7 +14,16 @@ from nepali_unicode_converter import ReverseConverter, ReverseConverterV2
 
 basepath =  os.path.dirname(os.path.abspath(__file__))
 
-abbr_index = json.load(open(f'{os.path.dirname(basepath)}/public/abbr.json'))
+abbr_index = json.load(open(f'{os.path.dirname(basepath)}/public/abbr-all.json'))
+
+target_abbrs = sorted([f"{v.strip()}." for v in set(abbr_index.values())], key=len, reverse=True)
+escaped_abbrs = [re.escape(a) for a in target_abbrs]
+pattern = r'(?<![\u0900-\u097F\w])(?:' + '|'.join(escaped_abbrs) + r')'
+ABBR_REGEX = re.compile(pattern)
+
+# delete to avoid creating extra entry. word and abbr both. - no harm but avoid
+# delelete after ABBR_REGEX so words will add it in the abbr column
+del abbr_index["विक्रम संवत"]
 
 def build_length_index(words_list):
     """Bucket words by length so similarity search never touches the full list."""
@@ -89,11 +98,14 @@ def process_word(wmeaning):
     
     plain_meaning = BeautifulSoup(meaning_cleaned, 'html.parser').get_text()
 
+    found_abbrs = set()
+    found_in_text = ABBR_REGEX.findall(plain_meaning)
+    for abbr in found_in_text: found_abbrs.add(abbr)
+
     meanings=[]
     raw_pos = ""
     sub_blocks = re.split(r'<p▤>.*?</p>', meaning_cleaned, flags=re.DOTALL)
 
-    found_abbrs = set()
     for block in sub_blocks:
         block = block.strip()
         if not block:
@@ -130,8 +142,8 @@ def process_word(wmeaning):
             clean_def = re.sub(r'^\s*\d+\.\s+', '', d).strip()
             if clean_def.startswith("हे."): clean_def=clean_def[3:].strip()
 
-            inline_abbrs=re.findall(r'\(([^()]*?\.)\)', clean_def)
-            for inline_abbr in inline_abbrs: found_abbrs.add(inline_abbr)
+            # inline_abbrs=re.findall(r'\(([^()]*?\.)\)', clean_def)
+            # for inline_abbr in inline_abbrs: found_abbrs.add(inline_abbr)
 
             linked_def = linkify_text(clean_def)
             linked_examples = [linkify_text(ex) for ex in examples]
@@ -141,14 +153,14 @@ def process_word(wmeaning):
             clean_definitions.append(clean_definition)
 
         if clean_definitions:
-            if raw_pos:found_abbrs.add(raw_pos)
+            # if raw_pos:found_abbrs.add(raw_pos)
             entry = {
                 "partOfSpeech": raw_pos,
                 "definitions": clean_definitions
             }
             if etymology:
-                abbrs=re.findall(r'[\u0900-\u097F\w]+\.', etymology)
-                for a in abbrs: found_abbrs.add(a)
+                # abbrs=re.findall(r'[\u0900-\u097F\w]+\.', etymology)
+                # for a in abbrs: found_abbrs.add(a)
                 entry["etymology"] = linkify_text(etymology)
 
             meanings.append(entry)
@@ -200,6 +212,9 @@ if __name__ == '__main__':
     total_words = len(words_meanings)
     print("Building length index for fast similarity lookup...")
     length_index = build_length_index(words_list)
+
+    # avoid linking the word so frontend dont double link it
+    words_list.remove("विसं.")
 
     # Process words in parallel using available CPU cores
     num_workers = os.cpu_count()

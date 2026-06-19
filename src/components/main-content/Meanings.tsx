@@ -5,7 +5,7 @@ import React, { useRef, useEffect } from "react";
 import MeaningsNyms from "./MeaningsNyms";
 import MeaningsExample from "./MeaningsExample";
 import { useNavigate } from "react-router-dom";
-import { formatForUrl } from "../../helpers/functions";
+import { linkAbbreviations } from "../../helpers/abbrRegex";
 
 const Meanings: React.FC<meaningsT> = function ({ meanings }) {
   const { partOfSpeech, etymology, definitions } = meanings;
@@ -41,26 +41,19 @@ const Meanings: React.FC<meaningsT> = function ({ meanings }) {
     };
   }, [navigate, etymology]);
 
-  const linkAbbreviations = (text: string) => {
+  const linkPosEtymologyAbbrs = (text: string) => {
     return text.replace(/[ऀ-ॿ\w]+\./g, (match) => {
       const urlWord = encodeURIComponent(match.trim().replaceAll(" ", "_"));
       return `<a href="/word/${urlWord}" class="abbr-link">${match}</a>`;
     });
   };
 
-  const linkAbbreviationsInDefinitions = (text: string) => {
-    return text.replace(/\(([ऀ-ॿ\w]+\.)\)/g, (match, abbr) => {
-      const urlWord = encodeURIComponent(abbr.trim().replaceAll(" ", "_"));
-      return `(<a href="/word/${urlWord}" class="abbr-link">${abbr}</a>)`;
-    });
-  };
-
-  const processedEtymology = etymology ? linkAbbreviations(etymology) : null;
-  const processedPartOfSpeech = linkAbbreviations(partOfSpeech);
+  const processedEtymology = etymology ? linkPosEtymologyAbbrs(etymology) : null;
+  const processedPartOfSpeech = linkPosEtymologyAbbrs(partOfSpeech);
 
   const definitionJSX = definitions.map((v, i) => (
     <li key={i}>
-      <span dangerouslySetInnerHTML={{ __html: linkAbbreviationsInDefinitions(v.definition) }} />
+      <span dangerouslySetInnerHTML={{ __html: linkAbbreviations(v.definition) }} />
       {v.examples && v.examples.length > 0 && <MeaningsExample example={v.examples[0]} />}
     </li>
   ));
