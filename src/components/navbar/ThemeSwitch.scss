@@ -6,6 +6,10 @@ $height: 2rem;
   @include flex-center;
   cursor: pointer;
   gap: 1rem;
+  background: none;
+  border: none;
+  padding: 0;
+
   & .theme-switch {
     @include flex-center;
     background-color: $primary-color;

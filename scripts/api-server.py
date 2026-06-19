@@ -8,7 +8,7 @@ basepath =  os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=f'{os.path.dirname(basepath)}/dist', static_url_path='')
 
 DB_PATH = f'{basepath}/dictionary.db'
-app_name="Dictionary"
+app_name="Nepali Dictionary"
 
 def get_word_from_db(word,api=True):
     conn = sqlite3.connect(DB_PATH)
@@ -62,7 +62,7 @@ def generate_word_html(word,result):
     <script type="application/ld+json">{json_ld}</script>'''
 
     content_for_crawler = (
-        f"<h1>{word}</h1>"
+        f"<h1>Meaning of {word}</h1>"
         f"<p>Also known as: {' / '.join(variant_list)}</p>"
         f"<div>{plain_meaning}</div>"
     )
@@ -130,6 +130,37 @@ def serve(path):
     if path != "" and os.path.exists(app.static_folder + '/' + path):
         return send_from_directory(app.static_folder, path)
     else:
+        # For home page, inject SEO meta tags and content
+        if path == "":
+            html_path = os.path.join(app.static_folder, 'index.html')
+            with open(html_path, 'r', encoding='utf-8') as f:
+                html = f.read()
+
+            # Home page meta tags
+            meta_tags = f'''<title>नेपाली शब्दकोश - Nepali Dictionary</title>
+    <meta name="description" content="नेपाली र रोमन शब्दहरूको अर्थ, उदाहरण र व्याकरण खोज्नुहोस्। Nepali dictionary with support for Nepali romanized search.">
+    <meta property="og:title" content="नेपाली शब्दकोश - Nepali Dictionary">
+    <meta property="og:description" content="नेपाली शब्दहरूको अर्थ र उदाहरण खोज्नुहोस्।">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="नेपाली शब्दकोश - Nepali Dictionary">
+    <meta name="twitter:description" content="नेपाली शब्दहरूको अर्थ र उदाहरण खोज्नुहोस्।">'''
+
+            # Replace title and inject meta tags
+            html = re.sub(r'<title>.*?</title>', meta_tags, html)
+
+            # Inject home page content for crawlers
+            home_content = '''<h1>नेपाली शब्दकोश - Nepali Dictionary</h1>
+            <p>नेपाली शब्दहरूको अर्थ, उदाहरण र व्याकरण खोज्नुहोस्। देवनागरी वा रोमन दुवैमा सजिलै खोज्न सकिन्छ।</p>
+            <p>Search for meanings and usage examples of Nepali words. Supports roman search.</p>'''
+
+            html = re.sub(
+                r'<main id="root"></main>',
+                f'<main id="root">{home_content}</main>',
+                html
+            )
+            return html
+
         return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':

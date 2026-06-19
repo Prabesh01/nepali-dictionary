@@ -14,12 +14,12 @@ const ThemeSwitch = function () {
   };
 
   return (
-    <a className="theme-container" onClick={onClickHandler}>
+    <button className="theme-container" onClick={onClickHandler} aria-label="Toggle theme">
       <div className={`theme-switch ${on ? "" : "off"}`}>
         <div className="lever" />
       </div>
       <img src={nightIcon} alt="night theme icon" />
-    </a>
+    </button>
   );
 };
 

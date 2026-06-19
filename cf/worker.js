@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    
+
     const apiMatch = url.pathname.match(/^\/api\/word\/([^/]+)\/?$/);
     if (apiMatch) {
       const word = decodeURIComponent(apiMatch[1]).replace(/_/g, ' ');
@@ -9,6 +9,12 @@ export default {
     }
 
     const pageMatch = url.pathname.match(/^\/word\/([^/]+)\/?$/);
+
+    // Home page - inject SEO content
+    if (url.pathname === '/' || url.pathname === '') {
+      const assetResponse = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url)));
+      return injectHomeSEO(assetResponse);
+    }
 
     const assetResponse = await env.ASSETS.fetch(new Request(new URL("/index.html", request.url)));
     if (!pageMatch) return env.ASSETS.fetch(request);;
@@ -93,9 +99,9 @@ function injectSEO(response, { word, variants, plainMeaning, suggestions }) {
   let description = plainMeaning.slice(0, 160);
   if (plainMeaning.length > 160) description = description.slice(0, description.lastIndexOf(' ')) + '…';
 
-  const plainTitle = `${word} - Dictionary`;
+  const plainTitle = `${word} - Nepali Dictionary`;
   const title = variantList.length
-    ? `${word} (${variantList.join(', ')}) - Dictionary`
+    ? `${word} (${variantList.join(', ')}) - Nepali Dictionary`
     : `${plainTitle}`;
 
   const jsonLd = JSON.stringify({
@@ -118,7 +124,7 @@ function injectSEO(response, { word, variants, plainMeaning, suggestions }) {
     : '';
 
   const crawlerContent = `
-    <h1>${escapeHtml(word)}</h1>
+    <h1>Meaning of ${escapeHtml(word)}</h1>
     <p>Also known as: ${escapeHtml(variantList.join(' / '))}</p>
     <div>${escapeHtml(plainMeaning)}</div>
     ${relatedLinks}`;
@@ -127,5 +133,27 @@ function injectSEO(response, { word, variants, plainMeaning, suggestions }) {
     .on('title', { element(el) { el.setInnerContent(title); } })
     .on('head', { element(el) { el.append(metaTags, { html: true }); } })
     .on('main#root', { element(el) { el.setInnerContent(crawlerContent, { html: true }); } })
+    .transform(response);
+}
+
+function injectHomeSEO(response) {
+  const metaTags = `
+    <meta name="description" content="नेपाली र रोमन शब्दहरूको अर्थ, उदाहरण र व्याकरण खोज्नुहोस्। Nepali dictionary with support for Nepali romanized search.">
+    <meta property="og:title" content="नेपाली शब्दकोश - Nepali Dictionary">
+    <meta property="og:description" content="नेपाली शब्दहरूको अर्थ र उदाहरणहरु खोज्नुहोस्।">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="नेपाली शब्दकोश - Nepali Dictionary">
+    <meta name="twitter:description" content="नेपाली शब्दहरूको अर्थ र उदाहरणहरु खोज्नुहोस्।">`;
+
+  const homeContent = `
+    <h1>नेपाली शब्दकोश - Nepali Dictionary</h1>
+    <p>नेपाली शब्दहरूको अर्थ, उदाहरण र व्याकरण खोज्नुहोस्। देवनागरी वा रोमन दुवैमा सजिलै खोज्न सकिन्छ।</p>
+    <p>Search for meanings and usage examples of Nepali words. Supports roman search.</p>`;
+
+  return new HTMLRewriter()
+    .on('title', { element(el) { el.setInnerContent('नेपाली शब्दकोश - Nepali Dictionary'); } })
+    .on('head', { element(el) { el.append(metaTags, { html: true }); } })
+    .on('main#root', { element(el) { el.setInnerContent(homeContent, { html: true }); } })
     .transform(response);
 }
